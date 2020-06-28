@@ -1,11 +1,4 @@
-pub fn hello() -> String {
-    String::from("hello")
-}
+#[macro_use]
+extern crate typed_builder;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+pub mod server;
