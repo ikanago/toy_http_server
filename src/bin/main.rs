@@ -32,10 +32,13 @@ fn handle_client(mut stream: TcpStream) {
     stream.flush().unwrap();
 }
 
+fn handler() -> String {
+    "HTTP/1.1 200 OK\r\n\r\n".to_string()
+}
+
 fn main() -> std::io::Result<()> {
-    let address = SocketAddr::from(([127, 0, 0, 1], 1111));
-    let listener = TcpListener::bind(address)?;
-    let mut server = Server::builder().address(address).listener(listener).build();
-    server.run(handle_client);
+    let address = "127.0.0.1";
+    let port = 1111;
+    Server::new().route("/".to_string(), handler).run()?;
     Ok(())
 }
