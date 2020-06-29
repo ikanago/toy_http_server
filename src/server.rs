@@ -66,6 +66,7 @@ impl Server {
                         Some(handler) => handler,
                         None => panic!("Handler not set for the route: {}", request.uri),
                     };
+                    dbg!(request.headers);
                     let response = handler();
                     stream.write(response.as_bytes()).unwrap();
                     stream.flush().unwrap();

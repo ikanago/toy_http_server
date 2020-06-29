@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::str::FromStr;
 
+pub type Headers = HashMap<HeaderField, String>;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Method {
     Get,
@@ -19,28 +21,58 @@ impl FromStr for Method {
     }
 }
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum HeaderField {
+    // Request headers:
+    Accept,
+    Host,
+    UserAgent,
+    // Entity headers
+    ContentLength,
+    ContentType,
+    // Unrecognized header field
+    Undefined,
+}
+
+impl FromStr for HeaderField {
+    type Err = RequestParseError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let header = match s {
+            "Accept" => HeaderField::Accept,
+            "Host" => HeaderField::Host,
+            "User-Agent" => HeaderField::UserAgent,
+            "Content-Length" => HeaderField::ContentLength,
+            "Content-Type" => HeaderField::ContentType,
+            _ => HeaderField::Undefined,
+        };
+        Ok(header)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Request {
     pub method: Method,
     pub uri: String,
-    pub headers: HashMap<String, String>,
+    pub headers: Headers,
 }
 
 impl Request {
     pub fn new(request_str: &str) -> Result<Request, Box<dyn Error>> {
         let request_lines = request_str.split("\r\n").collect::<Vec<&str>>();
-        let mut request_lines = request_lines.iter();
-        let request_line = request_lines
-            .next()
+        let (request_line, header_lines) = request_lines
+            .split_first()
             .ok_or_else(|| RequestParseError::Empty)?;
         let (method, uri) = Self::parse_request_line(*request_line)?;
+        let headers = Self::parse_headers(header_lines)?;
+
         Ok(Request {
             method,
             uri,
-            headers: HashMap::new(),
+            headers,
         })
     }
 
+    /// Parse first line of request. Return method type and uri of the request.
     fn parse_request_line(request_line_str: &str) -> Result<(Method, String), Box<dyn Error>> {
         let request_line_regex = Regex::new(r"([A-Z]+) ((/.*)*) HTTP/[1,2].\d{1}")?;
         let caps = request_line_regex
@@ -58,6 +90,36 @@ impl Request {
             .to_string();
         Ok((method, uri))
     }
+
+    /// Parse request lines except for the first line of it and return a map of
+    /// header field and its value.
+    // Todo: return remaining request lines.
+    fn parse_headers(header_lines: &[&str]) -> Result<Headers, RequestParseError> {
+        let mut headers = HashMap::new();
+        let header_lines = header_lines.to_vec();
+        let mut header_lines = header_lines.iter();
+        while let Some(header_line) = header_lines.next() {
+            if *header_line == "" {
+                break;
+            }
+            let header_line = header_line.split(": ").collect::<Vec<&str>>();
+            let header_field = header_line
+                .first()
+                .ok_or_else(|| RequestParseError::InvalidHeaderFormat)?;
+            let header_field = HeaderField::from_str(header_field).unwrap();
+            let header_value = header_line
+                .iter()
+                .nth(1)
+                .ok_or_else(|| RequestParseError::InvalidHeaderFormat)?
+                .clone();
+            // Unrecognized header fields should be ignored.
+            match header_field {
+                HeaderField::Undefined => continue,
+                _ => headers.insert(header_field, header_value.to_string()),
+            };
+        }
+        Ok(headers)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -65,6 +127,7 @@ pub enum RequestParseError {
     Empty,
     InvalidMethod,
     LackingPath,
+    InvalidHeaderFormat,
 }
 
 impl std::fmt::Display for RequestParseError {
@@ -73,6 +136,7 @@ impl std::fmt::Display for RequestParseError {
             &RequestParseError::Empty => write!(f, "Empty request"),
             &RequestParseError::InvalidMethod => write!(f, "Invalid type of method"),
             &RequestParseError::LackingPath => write!(f, "Lacking path"),
+            &RequestParseError::InvalidHeaderFormat => write!(f, "Invalid form of header"),
         }
     }
 }
@@ -81,7 +145,8 @@ impl Error for RequestParseError {}
 
 #[cfg(test)]
 mod tests {
-    use crate::request::{Method, Request};
+    use crate::request::{HeaderField, Method, Request};
+    use std::collections::HashMap;
 
     #[test]
     fn test_parse_request_line_for_root() {
@@ -97,5 +162,33 @@ mod tests {
         let (method, path) = Request::parse_request_line(request_line).unwrap();
         assert_eq!(method, Method::Get);
         assert_eq!(path, "/www/index.html".to_string())
+    }
+
+    #[test]
+    fn test_parse_headers() {
+        let header_lines = [
+            "Host: localhost:8000",
+            "User-Agent: curl/7.58.0",
+            "Accept: */*",
+            "Content-Length: 3",
+            "Content-Type: application/x-www-form-urlencoded",
+        ];
+        let headers = Request::parse_headers(&header_lines).unwrap();
+        assert_eq!(
+            headers,
+            [
+                (HeaderField::ContentLength, "3".to_string()),
+                (HeaderField::UserAgent, "curl/7.58.0".to_string()),
+                (HeaderField::Host, "localhost:8000".to_string()),
+                (HeaderField::Accept, "*/*".to_string()),
+                (
+                    HeaderField::ContentType,
+                    "application/x-www-form-urlencoded".to_string()
+                ),
+            ]
+            .iter()
+            .cloned()
+            .collect::<HashMap<HeaderField, String>>()
+        );
     }
 }
