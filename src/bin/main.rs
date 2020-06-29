@@ -32,13 +32,21 @@ fn handle_client(mut stream: TcpStream) {
     stream.flush().unwrap();
 }
 
-fn handler() -> String {
+fn handler_ok() -> String {
+    "HTTP/1.1 200 OK\r\n\r\n".to_string()
+}
+
+fn handler_sleep() -> String {
+    thread::sleep(Duration::from_secs(5));
     "HTTP/1.1 200 OK\r\n\r\n".to_string()
 }
 
 fn main() -> std::io::Result<()> {
     let address = "127.0.0.1";
     let port = 1111;
-    Server::new().route("/".to_string(), handler).run()?;
+    Server::new()
+        .route("/", handler_ok)
+        .route("/sleep", handler_sleep)
+        .run()?;
     Ok(())
 }

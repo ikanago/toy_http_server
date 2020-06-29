@@ -4,20 +4,19 @@ use std::io::{Read, Write};
 use std::net;
 use std::str::FromStr;
 
-#[derive(Debug, Default)]
-pub struct Server<F>
-where
-    F: Fn() -> String,
+// #[derive(Debug, Default)]
+pub struct Server
+// where
+    // F: Fn() -> String,
 {
     address: String,
     port: u16,
-    router: HashMap<String, Box<F>>,
-    listener: Option<net::TcpListener>,
+    router: HashMap<String, Box<dyn Fn() -> String>>,
 }
 
-impl<F> Server<F>
-where
-    F: Fn() -> String,
+impl Server
+// where
+    // F: Fn() -> String,
 {
     pub fn new() -> Self {
         let address = "127.0.0.1".to_string();
@@ -27,7 +26,6 @@ where
             address,
             port,
             router,
-            listener: None,
         }
     }
 
@@ -39,8 +37,11 @@ where
         }
     }
 
-    pub fn route(mut self, path: String, handler: F) -> Self {
-        self.router.insert(path, Box::new(handler));
+    pub fn route<F>(mut self, path: &str, handler: F) -> Self
+    where
+        F: Fn() -> String + 'static
+    {
+        self.router.insert(path.to_string(), Box::new(handler));
         self
     }
 
