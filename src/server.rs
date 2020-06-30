@@ -1,4 +1,5 @@
 use crate::request::Request;
+use crate::response::Response;
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::{self, Read, Write};
@@ -8,7 +9,7 @@ use std::str::FromStr;
 pub struct Server {
     address: String,
     port: u16,
-    router: HashMap<String, Box<dyn Fn() -> String>>,
+    router: HashMap<String, Box<dyn Fn() -> Response>>,
 }
 
 impl Server {
@@ -33,7 +34,7 @@ impl Server {
 
     pub fn route<F>(mut self, path: &str, handler: F) -> Self
     where
-        F: Fn() -> String + 'static,
+        F: Fn() -> Response + 'static,
     {
         self.router.insert(path.to_string(), Box::new(handler));
         self
@@ -66,10 +67,11 @@ impl Server {
                         Some(handler) => handler,
                         None => panic!("Handler not set for the route: {}", request.uri),
                     };
-                    dbg!(request.headers);
-                    let response = handler();
-                    stream.write(response.as_bytes()).unwrap();
-                    stream.flush().unwrap();
+                    dbg!(request);
+                    let response: String = handler().into();
+                    stream.write(response.as_bytes())?;
+                    stream.flush()?;
+                    dbg!(response);
                 }
                 Err(err) => return Err(io::Error::new(io::ErrorKind::Other, err)),
             }
@@ -77,4 +79,3 @@ impl Server {
         Ok(())
     }
 }
-

@@ -1,4 +1,6 @@
 extern crate regex;
 
-pub mod server;
 pub mod request;
+pub mod response;
+pub mod server;
+pub mod status;
