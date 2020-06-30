@@ -39,8 +39,20 @@ impl Into<Vec<u8>> for HeaderField {
             HeaderField::UserAgent => "User-Agent",
             HeaderField::ContentLength => "Content-Length",
             HeaderField::ContentType => "Content-Type",
-            HeaderField::Undefined => ""
+            HeaderField::Undefined => "",
         };
         header_field.as_bytes().to_vec()
     }
+}
+
+pub fn to_vec(headers: Headers) -> Vec<u8> {
+    let mut headers_vec = Vec::new();
+    for (header_field, header_value) in headers {
+        let mut header_field: Vec<u8> = header_field.into();
+        headers_vec.append(&mut header_field);
+        headers_vec.append(&mut ": ".as_bytes().to_vec());
+        headers_vec.append(&mut header_value.into_bytes());
+        headers_vec.append(&mut "\r\n".as_bytes().to_vec());
+    }
+    headers_vec
 }

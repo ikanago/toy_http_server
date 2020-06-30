@@ -1,4 +1,4 @@
-use crate::headers::{HeaderField, Headers};
+use crate::headers::{HeaderField, Headers, to_vec};
 use crate::status::Status;
 use std::collections::HashMap;
 use std::convert::Into;
@@ -38,13 +38,7 @@ impl Into<Vec<u8>> for Response {
         let mut response = Vec::new();
         let status_line = format!("HTTP/1.1 {} {}\r\n", self.status_code, self.reason_phrase);
         response.append(&mut status_line.into_bytes());
-        for (header_field, header_value) in self.headers {
-            let mut header_field: Vec<u8> = header_field.into();
-            response.append(&mut header_field);
-            response.append(&mut ": ".as_bytes().to_vec());
-            response.append(&mut header_value.into_bytes());
-            response.append(&mut "\r\n".as_bytes().to_vec());
-        }
+        response.append(&mut to_vec(self.headers));
         response.append(&mut "\r\n".as_bytes().to_vec());
         if let Some(mut body) = self.body {
             response.append(&mut body);
