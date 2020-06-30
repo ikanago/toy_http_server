@@ -31,7 +31,7 @@ impl FromStr for HeaderField {
     }
 }
 
-impl Into<Vec<u8>> for HeaderField {
+impl Into<Vec<u8>> for &HeaderField {
     fn into(self) -> Vec<u8> {
         let header_field = match self {
             HeaderField::Accept => "Accept",
@@ -45,14 +45,44 @@ impl Into<Vec<u8>> for HeaderField {
     }
 }
 
-pub fn to_vec(headers: Headers) -> Vec<u8> {
+pub fn to_vec(headers: &Headers) -> Vec<u8> {
     let mut headers_vec = Vec::new();
     for (header_field, header_value) in headers {
         let mut header_field: Vec<u8> = header_field.into();
         headers_vec.append(&mut header_field);
         headers_vec.append(&mut ": ".as_bytes().to_vec());
-        headers_vec.append(&mut header_value.into_bytes());
+        headers_vec.append(&mut header_value.as_bytes().to_vec());
         headers_vec.append(&mut "\r\n".as_bytes().to_vec());
     }
     headers_vec
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::headers::{to_vec, HeaderField, Headers};
+    use crate::request::Request;
+
+    #[test]
+    fn test_to_vec() {
+        let headers = [
+            (HeaderField::ContentLength, "3".to_string()),
+            (HeaderField::UserAgent, "curl/7.58.0".to_string()),
+            (HeaderField::Host, "localhost:8000".to_string()),
+            (HeaderField::Accept, "*/*".to_string()),
+            (
+                HeaderField::ContentType,
+                "application/x-www-form-urlencoded".to_string(),
+            ),
+        ]
+        .iter()
+        .cloned()
+        .collect::<Headers>();
+
+        let expected = to_vec(&headers);
+        let expected = String::from_utf8(expected).unwrap();
+        let expected = expected.split("\r\n").collect::<Vec<&str>>();
+        let expected = Request::parse_headers(&expected).unwrap();
+
+        assert_eq!(headers, expected,);
+    }
 }

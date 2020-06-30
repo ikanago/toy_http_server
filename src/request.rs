@@ -65,7 +65,7 @@ impl Request {
     /// Parse request lines except for the first line of it and return a map of
     /// header field and its value.
     // Todo: return remaining request lines.
-    fn parse_headers(header_lines: &[&str]) -> Result<Headers, RequestParseError> {
+    pub(crate) fn parse_headers(header_lines: &[&str]) -> Result<Headers, RequestParseError> {
         let mut headers = HashMap::new();
         let header_lines = header_lines.to_vec();
         let mut header_lines = header_lines.iter();

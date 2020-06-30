@@ -38,7 +38,7 @@ impl Into<Vec<u8>> for Response {
         let mut response = Vec::new();
         let status_line = format!("HTTP/1.1 {} {}\r\n", self.status_code, self.reason_phrase);
         response.append(&mut status_line.into_bytes());
-        response.append(&mut to_vec(self.headers));
+        response.append(&mut to_vec(&self.headers));
         response.append(&mut "\r\n".as_bytes().to_vec());
         if let Some(mut body) = self.body {
             response.append(&mut body);
