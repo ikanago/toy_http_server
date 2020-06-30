@@ -68,10 +68,9 @@ impl Server {
                         None => panic!("Handler not set for the route: {}", request.uri),
                     };
                     dbg!(request);
-                    let response: String = handler().into();
-                    stream.write(response.as_bytes())?;
+                    let response: Vec<u8> = handler().into();
+                    stream.write(&response)?;
                     stream.flush()?;
-                    dbg!(response);
                 }
                 Err(err) => return Err(io::Error::new(io::ErrorKind::Other, err)),
             }
