@@ -1,7 +1,9 @@
 use crate::request::Request;
+use crate::responder::Responder;
 use crate::response::Response;
 use std::collections::HashMap;
 use std::error::Error;
+use std::fs::File;
 use std::io::{self, Read, Write};
 use std::net;
 use std::str::FromStr;
@@ -63,14 +65,15 @@ impl Server {
                             continue;
                         }
                     };
-                    let handler = match self.router.get(&request.uri) {
-                        Some(handler) => handler,
-                        None => panic!("Handler not set for the route: {}", request.uri),
-                    };
+                    let current_dir = std::env::current_dir()?;
+                    let request_file_path = current_dir.join(&request.uri);
+                    let file = File::open(&request_file_path)?;
                     dbg!(request);
-                    let response: Vec<u8> = handler().into();
-                    stream.write(&response)?;
-                    stream.flush()?;
+                    let response = file.to_response()?;
+                    if let Some(body) = response.body {
+                        stream.write(&body)?;
+                        stream.flush()?;
+                    }
                 }
                 Err(err) => return Err(io::Error::new(io::ErrorKind::Other, err)),
             }
