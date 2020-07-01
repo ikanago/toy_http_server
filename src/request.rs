@@ -1,4 +1,4 @@
-use crate::headers::{HeaderField, Headers};
+use crate::headers::{HeaderField, HeaderMap};
 use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
@@ -24,10 +24,12 @@ impl FromStr for Method {
 pub struct Request {
     pub method: Method,
     pub uri: String,
-    pub headers: Headers,
+    pub headers: HeaderMap,
 }
 
 impl Request {
+    /// Parse a request string and create new `Request` instance.
+    // Todo: parse request body.
     pub fn new(request_str: &str) -> Result<Request, Box<dyn Error>> {
         let request_lines = request_str.split("\r\n").collect::<Vec<&str>>();
         let (request_line, header_lines) = request_lines
@@ -65,7 +67,7 @@ impl Request {
     /// Parse request lines except for the first line of it and return a map of
     /// header field and its value.
     // Todo: return remaining request lines.
-    pub(crate) fn parse_headers(header_lines: &[&str]) -> Result<Headers, RequestParseError> {
+    pub(crate) fn parse_headers(header_lines: &[&str]) -> Result<HeaderMap, RequestParseError> {
         let mut headers = HashMap::new();
         let header_lines = header_lines.to_vec();
         let mut header_lines = header_lines.iter();

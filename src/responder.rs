@@ -3,6 +3,7 @@ use crate::status::Status;
 use std::fs::File;
 use std::io::{self, Read};
 
+/// Trait to convert `String` or `File` into `Response`.
 pub trait Responder {
     fn to_response(self) -> io::Result<Response>;
 }

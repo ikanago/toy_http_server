@@ -1,5 +1,7 @@
 use std::convert::Into;
 
+/// Enum of response statuses. Each status is converted into status code and message
+/// through `into()` function.
 pub enum Status {
     OK,
 }

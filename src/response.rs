@@ -1,4 +1,4 @@
-use crate::headers::{HeaderField, Headers, to_vec};
+use crate::headers::{HeaderField, HeaderMap, to_vec};
 use crate::status::Status;
 use std::collections::HashMap;
 use std::convert::Into;
@@ -7,10 +7,12 @@ pub struct Response {
     pub status_code: u16,
     pub reason_phrase: String,
     pub body: Option<Vec<u8>>,
-    pub headers: Headers,
+    pub headers: HeaderMap,
 }
 
 impl Response {
+    /// Construct new `Response` from status code.
+    /// Headers and body is ramained empty.
     pub fn new(status: Status) -> Self {
         let (status_code, reason_phrase) = status.into();
         Self {
@@ -21,6 +23,8 @@ impl Response {
         }
     }
 
+    /// Set response body and correspondeing headers.
+    // Todo: make it possible to specify headers with arguments.
     pub fn set_body(&mut self, body: String) {
         let body = body.into_bytes();
         let length = body.len();

@@ -1,7 +1,7 @@
 use crate::request::RequestParseError;
 use std::collections::HashMap;
 use std::str::FromStr;
-pub type Headers = HashMap<HeaderField, String>;
+pub type HeaderMap = HashMap<HeaderField, String>;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum HeaderField {
@@ -45,7 +45,9 @@ impl Into<Vec<u8>> for &HeaderField {
     }
 }
 
-pub fn to_vec(headers: &Headers) -> Vec<u8> {
+/// Convert hash map of headers into vector of bytes joined by a newline character.
+// I tried to implement `Into<Vec<u8>>` for `Headers` but the implementation is reserved.
+pub fn to_vec(headers: &HeaderMap) -> Vec<u8> {
     let mut headers_vec = Vec::new();
     for (header_field, header_value) in headers {
         let mut header_field: Vec<u8> = header_field.into();
@@ -59,7 +61,7 @@ pub fn to_vec(headers: &Headers) -> Vec<u8> {
 
 #[cfg(test)]
 mod tests {
-    use crate::headers::{to_vec, HeaderField, Headers};
+    use crate::headers::{to_vec, HeaderField, HeaderMap};
     use crate::request::Request;
 
     #[test]
@@ -76,7 +78,7 @@ mod tests {
         ]
         .iter()
         .cloned()
-        .collect::<Headers>();
+        .collect::<HeaderMap>();
 
         let expected = to_vec(&headers);
         let expected = String::from_utf8(expected).unwrap();
