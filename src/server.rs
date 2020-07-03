@@ -1,10 +1,8 @@
 use crate::handler::Handler;
 use crate::request::Request;
-use crate::responder::Responder;
 use crate::response::Response;
 use std::collections::HashMap;
 use std::error::Error;
-use std::fs::File;
 use std::io::{self, Read, Write};
 use std::net;
 use std::str::FromStr;
@@ -70,8 +68,8 @@ impl Server {
                         Some(handler) => handler,
                         None => panic!("Handler not set for the route: {}", request.uri),
                     };
+                    let response: Vec<u8> = handler.handle(&request).into();
                     dbg!(request);
-                    let response: Vec<u8> = handler.handle().into();
                     stream.write(&response)?;
                     stream.flush()?;
                 }

@@ -1,4 +1,4 @@
-use crate::headers::{HeaderField, HeaderMap, to_vec};
+use crate::headers::{to_vec, HeaderField, HeaderMap};
 use crate::status::Status;
 use std::collections::HashMap;
 use std::convert::Into;
@@ -10,6 +10,7 @@ pub struct Response {
     pub headers: HeaderMap,
 }
 
+// Todo: implement method to build this struct from error.
 impl Response {
     /// Construct new `Response` from status code.
     /// Headers and body is ramained empty.
