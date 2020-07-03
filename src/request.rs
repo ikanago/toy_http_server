@@ -59,8 +59,9 @@ impl Request {
         let uri = caps
             .get(2)
             .ok_or_else(|| RequestParseError::LackingPath)?
-            .as_str();
-        let uri = uri.trim_start_matches('/').to_string();
+            .as_str()
+            .to_string();
+        // let uri = uri.trim_start_matches('/').to_string();
         Ok((method, uri))
     }
 

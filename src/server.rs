@@ -1,3 +1,4 @@
+use crate::handler::Handler;
 use crate::request::Request;
 use crate::responder::Responder;
 use crate::response::Response;
@@ -11,7 +12,7 @@ use std::str::FromStr;
 pub struct Server {
     address: String,
     port: u16,
-    router: HashMap<String, Box<dyn Fn() -> Response>>,
+    router: HashMap<String, Box<dyn Handler>>,
 }
 
 impl Server {
@@ -36,7 +37,7 @@ impl Server {
 
     pub fn route<F>(mut self, path: &str, handler: F) -> Self
     where
-        F: Fn() -> Response + 'static,
+        F: Handler,
     {
         self.router.insert(path.to_string(), Box::new(handler));
         self
@@ -65,15 +66,14 @@ impl Server {
                             continue;
                         }
                     };
-                    let current_dir = std::env::current_dir()?;
-                    let request_file_path = current_dir.join(&request.uri);
-                    let file = File::open(&request_file_path)?;
+                    let handler = match self.router.get(&request.uri) {
+                        Some(handler) => handler,
+                        None => panic!("Handler not set for the route: {}", request.uri),
+                    };
                     dbg!(request);
-                    let response = file.to_response()?;
-                    if let Some(body) = response.body {
-                        stream.write(&body)?;
-                        stream.flush()?;
-                    }
+                    let response: Vec<u8> = handler.handle().into();
+                    stream.write(&response)?;
+                    stream.flush()?;
                 }
                 Err(err) => return Err(io::Error::new(io::ErrorKind::Other, err)),
             }
