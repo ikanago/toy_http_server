@@ -3,6 +3,7 @@ use crate::status::Status;
 use std::collections::HashMap;
 use std::convert::Into;
 
+#[derive(Clone, Debug)]
 pub struct Response {
     pub status_code: u16,
     pub reason_phrase: String,
