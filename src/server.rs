@@ -1,6 +1,6 @@
 use crate::handler::Handler;
 use crate::request::Request;
-use crate::router::route::Route;
+use crate::router::Router;
 use std::error::Error;
 use std::io::{self, Read, Write};
 use std::net;
@@ -9,14 +9,14 @@ use std::str::FromStr;
 pub struct Server {
     address: String,
     port: u16,
-    router: Route,
+    router: Router,
 }
 
 impl Server {
     pub fn new() -> Self {
         let address = "127.0.0.1".to_string();
         let port = 8000u16;
-        let router = Route::new();
+        let router = Router::new();
         Self {
             address,
             port,

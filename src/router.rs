@@ -6,14 +6,14 @@ fn includes_wildcard(path: &str) -> bool {
 }
 
 /// Node of trie tree.
-#[derive(Default)]
-pub struct Route {
+#[derive(Debug, Default)]
+pub struct Router {
     pub path: String,
     pub handler: Option<Box<dyn Handler>>,
-    children: Vec<Box<Route>>,
+    children: Vec<Box<Router>>,
 }
 
-impl Route {
+impl Router {
     pub fn new() -> Self {
         Default::default()
     }
@@ -47,7 +47,7 @@ impl Route {
         // For the first time to insert node to root.
         if self.path.len() == 0 && self.children.len() == 0 {
             self.children
-                .push(Box::new(Route::new_child(new_path, handler)));
+                .push(Box::new(Router::new_child(new_path, handler)));
             return;
         }
         if self.path == new_path {
@@ -56,24 +56,32 @@ impl Route {
         }
 
         let lcp = self.longest_common_prefix(new_path);
-        // If length of longest common prefix is not 0, `self.path` cannot be `None`.
         let path = self.path.clone();
-        // For example, `self.path` is "static" and longest common prefix is "stat".
         if path.len() > lcp {
+            // For example, `self.path` is "static" and longest common prefix is "stat".
             let common_prefix = &path[..lcp];
             let path_remaining = &path[lcp..];
             let new_path_remaining = &new_path[lcp..];
 
-            let new_child = Self {
+            self.path = common_prefix.to_string();
+            let deriving_child = Self {
                 path: path_remaining.to_string(),
                 handler: std::mem::take(&mut self.handler),
                 children: std::mem::take(&mut self.children),
             };
-            self.path = common_prefix.to_string();
-            self.children = vec![
-                Box::new(new_child),
-                Box::new(Route::new_child(new_path_remaining, handler)),
-            ]
+            if new_path_remaining.len() > 0 {
+                // For example, "abc" and "ade".
+                self.children = vec![
+                    Box::new(deriving_child),
+                    Box::new(Router::new_child(new_path_remaining, handler)),
+                ];
+            } else {
+                // For example, "abc" and "a".
+                // If "a" is inserted in the same way as previous block, a handler for the node "a"
+                // is replaced with `None` but the node has a `handler`.
+                self.handler = Some(Box::new(handler));
+                self.children = vec![Box::new(deriving_child)];
+            }
         } else {
             // When longest common prefix is exactly the same as `self.path`.
             let new_path_remaining = &new_path[lcp..];
@@ -90,9 +98,9 @@ impl Route {
                     _ => continue,
                 }
             }
-            // If there is no child to match new path, just insert it.
+            // If there is no child in `self.children` that matches new path, just insert it.
             self.children
-                .push(Box::new(Route::new_child(new_path_remaining, handler)));
+                .push(Box::new(Router::new_child(new_path_remaining, handler)));
         }
     }
 
@@ -138,11 +146,11 @@ impl Route {
 mod tests {
     use crate::request::Request;
     use crate::response::Response;
-    use crate::router::route::Route;
+    use crate::router::Router;
 
     #[test]
     fn test_lcp() {
-        let node_x = Route {
+        let node_x = Router {
             path: "abcde".to_string(),
             handler: None,
             children: Vec::new(),
@@ -152,7 +160,7 @@ mod tests {
 
     #[test]
     fn test_lcp_root() {
-        let node_x = Route {
+        let node_x = Router {
             path: "".to_string(),
             handler: None,
             children: Vec::new(),
@@ -166,15 +174,15 @@ mod tests {
 
     #[test]
     fn test_find() {
-        let mut tree = Route::new();
-        let keys = vec!["/", "to", "tea", "ted", "ten", "i", "in", "inn"];
+        let mut tree = Router::new();
+        let keys = vec!["/", "to", "tea", "ted", "hoge", "h", "i", "in", "inn"];
         for key in &keys {
             tree.add_route(key, dummy_handler);
         }
         for key in keys {
             match tree.find(key) {
                 Some(_) => continue,
-                None => panic!()
+                None => panic!(),
             }
         }
     }
@@ -185,7 +193,7 @@ mod tests {
         use rand::distributions::Alphanumeric;
         use rand::random;
         use rand::Rng;
-        let length = random::<usize>() % 500 + 1;
+        let length = random::<usize>() % 100 + 1;
         rand::thread_rng()
             .sample_iter(&Alphanumeric)
             .take(length)
@@ -194,7 +202,7 @@ mod tests {
 
     #[test]
     fn test_find_random() {
-        let mut tree = Route::new();
+        let mut tree = Router::new();
         let count = 1000;
         let keys = (0..count).map(|_| random_string()).collect::<Vec<String>>();
         for key in &keys {
@@ -203,14 +211,14 @@ mod tests {
         for key in &keys {
             match tree.find(key) {
                 Some(_) => continue,
-                None => panic!("{}", key)
+                None => panic!("keys: {:?}\n, key: {}\n, tree: {:#?}", &keys, key, &tree),
             }
         }
     }
 
     #[test]
     fn test_find_with_wildcard() {
-        let mut tree = Route::new();
+        let mut tree = Router::new();
         let paths = vec!["/", "/index.html", "/static/*"];
         for key in &paths {
             tree.add_route(key, dummy_handler);
@@ -225,7 +233,7 @@ mod tests {
         for query in &queries {
             match tree.find(query) {
                 Some(_) => continue,
-                None => panic!()
+                None => panic!(),
             }
         }
     }
