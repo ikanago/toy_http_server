@@ -1,16 +1,17 @@
-/// Check if the path has wild card at the end of the path.
 use crate::handler::Handler;
 
-fn includes_wildcard(path: &str) -> bool {
-    path.ends_with("/*")
-}
-
-/// Node of trie tree.
+/// URI paths are represented as trie tree.
+/// This struct is a node of the tree.
 #[derive(Debug, Default)]
 pub struct Router {
     pub path: String,
     pub handler: Option<Box<dyn Handler>>,
     children: Vec<Box<Router>>,
+}
+
+/// Check if the path has wild card at the end of the path.
+fn includes_wildcard(path: &str) -> bool {
+    path.ends_with("/*")
 }
 
 impl Router {
